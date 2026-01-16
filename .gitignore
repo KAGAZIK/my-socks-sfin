@@ -1,0 +1,4 @@
+.venv/
+.streamlit/config.toml
+*.xlsx
+__pycache__/
