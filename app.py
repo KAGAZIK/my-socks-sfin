@@ -151,12 +151,10 @@ elif st.session_state.page == "Покупатель (Каталог)":
             filt_col1, filt_col2 = st.columns(2)
 
             with filt_col1:
-                # ВАЖНО: Мы прописываем список вручную, чтобы он всегда был полным
                 categories = ["Все", "Мужские", "Женские", "Детские"]
                 sel_cat = st.selectbox("Категория", categories)
 
             with filt_col2:
-                # То же самое для сезонов
                 seasons = ["Все", "Лето", "Зима", "Демисезон"]
                 sel_season = st.selectbox("Сезон", seasons)
 
@@ -165,7 +163,6 @@ elif st.session_state.page == "Покупатель (Каталог)":
         # --- 2. ЛОГИКА ФИЛЬТРАЦИИ ---
         filtered_df = df.copy()
 
-        # Если выбрано не "Все", оставляем только нужные строки
         if sel_cat != "Все":
             filtered_df = filtered_df[filtered_df["Категория"] == sel_cat]
 
@@ -249,7 +246,7 @@ elif st.session_state.page == "📦 Корзина":
                             st.write("🖼️")
                     with c2:
                         st.subheader(item.iloc[1])
-                        st.write(f"**{item.iloc[2]} шт.**")
+                        st.write(f"**{item.iloc[2]} пачек.**")
                         if len(item) > 4 and item.iloc[4]:
                             st.info(f"💬 {item.iloc[4]}")
 
@@ -284,3 +281,4 @@ elif st.session_state.page == "📦 Корзина":
     else:
 
         st.info("Корзина пуста.")
+
