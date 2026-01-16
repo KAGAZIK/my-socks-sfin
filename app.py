@@ -95,7 +95,7 @@ if st.session_state.page == "Продавец (Добавить)":
                 c1, c2 = st.columns(2)
                 cat = c1.selectbox("Категория", ["Мужские", "Женские", "Детские"])
                 seas = c2.selectbox("Сезон", ["Лето", "Зима", "Демисезон"])
-                qty = st.selectbox("В пачке", ["10", "12", "14", "16"])
+                qty = st.selectbox("В пачке", ["6","10", "12", "14", "16"])
                 tags = st.text_input("Хештеги")
                 photo = st.file_uploader("Фото", type=['jpg', 'png'])
 
@@ -262,7 +262,7 @@ elif st.session_state.page == "📦 Корзина":
             if st.button("🚀 Отправить заказ", use_container_width=True):
                 msg = f"📦 *ЗАКАЗ*\n👤 {st.session_state.user_name}\n📞 {st.session_state.user_phone}\n---\n"
                 for _, r in my_items.iterrows():
-                    msg += f"• {r.iloc[1]} — {r.iloc[2]} шт."
+                    msg += f"• {r.iloc[1]} — {r.iloc[2]} пачек."
                     if len(r) > 4 and r.iloc[4]: msg += f" ({r.iloc[4]})"
                     msg += "\n"
 
@@ -282,4 +282,5 @@ elif st.session_state.page == "📦 Корзина":
         else:
             st.info("Корзина пуста.")
     else:
+
         st.info("Корзина пуста.")
