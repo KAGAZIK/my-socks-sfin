@@ -64,7 +64,7 @@ def save_to_excel(data_dict):
 st.sidebar.success(f"👤 {st.session_state.user_name}")
 
 # Простое меню без ложных счетчиков
-menu_options = ["Покупатель (Каталог)", "📦 Корзина", "Продавец (Добавить)"]
+menu_options = ["Покупатель (Каталог)", "📦 Заказ", "Продавец (Добавить)"]
 st.session_state.page = st.sidebar.radio("Перейти к:", menu_options, index=menu_options.index(st.session_state.page))
 
 if st.sidebar.button("Выйти"):
@@ -281,5 +281,6 @@ elif st.session_state.page == "📦 Заказ":
     else:
 
         st.info("Корзина пуста.")
+
 
 
