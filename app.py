@@ -200,7 +200,7 @@ elif st.session_state.page == "Покупатель (Каталог)":
                             st.text_input("Коммент", placeholder="Размер/Цвет", key=comm_key)
 
                         # Кнопка на всю ширину для удобства (особенно с телефона)
-                        if st.button("🛒 В корзину", key=f"btn_{index}", use_container_width=True):
+                        if st.button("🛒 Заказать", key=f"btn_{index}", use_container_width=True):
                             selected_qty = st.session_state[qty_key]
                             selected_comm = st.session_state[comm_key]
 
@@ -219,8 +219,8 @@ elif st.session_state.page == "Покупатель (Каталог)":
     else:
         st.warning("База товаров еще не создана. Зайдите в Админку.")
 # --- 8. СТРАНИЦА: КОРЗИНА ---
-elif st.session_state.page == "📦 Корзина":
-    st.title("🛒 Ваша корзина")
+elif st.session_state.page == "📦 Заказ":
+    st.title("🛒 Ваш заказ")
 
     # Получаем данные
     all_rows = cart_sheet.get_all_values()
@@ -281,4 +281,5 @@ elif st.session_state.page == "📦 Корзина":
     else:
 
         st.info("Корзина пуста.")
+
 
