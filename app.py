@@ -20,6 +20,7 @@ creds = Credentials.from_service_account_info(st.secrets["gspread_credentials"],
 client = gspread.authorize(creds)
 sheet = client.open("socks_db")
 
+items_sheet = sheet.worksheet("товары")
 users_sheet = sheet.worksheet("аккаунты")
 cart_sheet = sheet.worksheet("корзины")
 
@@ -88,28 +89,36 @@ if st.session_state.page == "Продавец (Добавить)":
             st.session_state.admin_auth = False
             st.rerun()
 
-        # Форма добавления
+    # Форма добавления
         with st.expander("➕ Добавить новый товар", expanded=True):
             with st.form("add_form", clear_on_submit=True):
                 name = st.text_input("Название")
                 c1, c2 = st.columns(2)
                 cat = c1.selectbox("Категория", ["Мужские", "Женские", "Детские"])
                 seas = c2.selectbox("Сезон", ["Лето", "Зима", "Демисезон"])
-                qty = st.selectbox("В пачке", ["6","10", "12", "14", "16"])
+                qty = st.selectbox("В пачке", ["6", "10", "12", "14", "16"])
                 tags = st.text_input("Хештеги")
                 photo = st.file_uploader("Фото", type=['jpg', 'png'])
 
                 if st.form_submit_button("Опубликовать"):
                     if photo and name:
+                        # 1. Сохраняем фото локально (для отображения)
                         p_path = os.path.join(IMG_DIR, photo.name)
                         with open(p_path, "wb") as f:
                             f.write(photo.getbuffer())
 
-                        save_to_excel({
-                            "Категория": cat, "Сезон": seas, "Название": name,
-                            "Количество в пачке": qty, "Теги": tags, "фото": p_path
-                        })
-                        st.success("Товар добавлен!")
+                        # 2. ЗАПИСЫВАЕМ В GOOGLE ТАБЛИЦУ (вместо Excel)
+                        # Важно: порядок должен совпадать с заголовками в таблице
+                        items_sheet.append_row([
+                            cat,    # Категория
+                            seas,   # Сезон
+                            name,   # Название
+                            qty,    # Количество в пачке
+                            tags,   # Теги
+                            p_path  # Путь к фото
+                        ])
+                        
+                        st.success("Товар успешно сохранен в Google Таблицу!")
                         st.rerun()
                     else:
                         st.error("Нужно название и фото!")
@@ -117,32 +126,37 @@ if st.session_state.page == "Продавец (Добавить)":
         # Список для удаления
         st.divider()
         st.subheader("🗑️ Удаление товаров")
-        if os.path.exists(DB_FILE):
-            df_actual = pd.read_excel(DB_FILE)
-            if not df_actual.empty:
-                for i, row in df_actual.iterrows():
-                    c1, c2, c3 = st.columns([1, 3, 1])
+        
+        # Читаем данные из Google Таблицы
+        all_items = items_sheet.get_all_records()
+        if all_items:
+            df_actual = pd.DataFrame(all_items)
+            for i, row in df_actual.iterrows():
+                c1, c2, c3 = st.columns([1, 3, 1])
+                
+                with c1:
                     img_path = str(row['фото'])
                     if os.path.exists(img_path):
-                        c1.image(img_path, width=200)
+                        st.image(img_path, width=100)
                     else:
-                        c1.write("🖼️")
-                    c2.write(f"**{row['Название']}**")
-                    if c3.button("Удалить", key=f"del_admin_{i}"):
-                        df_actual.drop(i).to_excel(DB_FILE, index=False)
-                        st.success("Удалено!")
-                        st.rerun()
-            else:
-                st.info("Нет товаров.")
+                        st.write("🖼️")
+                
+                c2.write(f"**{row['Название']}**")
+                
+                # Удаление из Google Таблицы (i+2 т.к. в Google нумерация с 1 и есть заголовок)
+                if c3.button("Удалить", key=f"del_admin_{i}"):
+                    items_sheet.delete_rows(i + 2)
+                    st.success("Удалено из облака!")
+                    st.rerun()
         else:
-            st.warning("База данных пуста.")
-
+            st.info("В Google Таблице пока нет товаров.")
 # --- 7. СТРАНИЦА: КАТАЛОГ ---
 elif st.session_state.page == "Покупатель (Каталог)":
     st.title("🧦 Каталог носков")
 
     if os.path.exists(DB_FILE):
-        df = pd.read_excel(DB_FILE)
+        all_items = items_sheet.get_all_records()
+df = pd.DataFrame(all_items)
 
         # --- 1. ФИЛЬТРЫ СВЕРХУ ---
         # Создаем контейнер для фильтров
@@ -281,6 +295,7 @@ elif st.session_state.page == "📦 Заказ":
     else:
 
         st.info("Корзина пуста.")
+
 
 
 
