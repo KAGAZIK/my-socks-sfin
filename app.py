@@ -156,7 +156,7 @@ elif st.session_state.page == "Покупатель (Каталог)":
 
     if os.path.exists(DB_FILE):
         all_items = items_sheet.get_all_records()
-df = pd.DataFrame(all_items)
+        df = pd.DataFrame(all_items)
 
         # --- 1. ФИЛЬТРЫ СВЕРХУ ---
         # Создаем контейнер для фильтров
