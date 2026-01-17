@@ -137,7 +137,7 @@ if st.session_state.page == "Продавец (Добавить)":
                 with c1:
                     img_path = str(row['фото'])
                     if os.path.exists(img_path):
-                        st.image(img_path, width=100)
+                        st.image(img_path, width=150)
                     else:
                         st.write("🖼️")
                 
@@ -295,6 +295,7 @@ elif st.session_state.page == "📦 Заказ":
     else:
 
         st.info("Корзина пуста.")
+
 
 
 
