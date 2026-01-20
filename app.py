@@ -153,85 +153,74 @@ if st.session_state.page == "Продавец (Добавить)":
 # --- 7. СТРАНИЦА: КАТАЛОГ ---
 elif st.session_state.page == "Покупатель (Каталог)":
     st.title("🧦 Каталог носков")
-
-    if os.path.exists(DB_FILE):
-        all_items = items_sheet.get_all_records()
-        df = pd.DataFrame(all_items)
-
-        # --- 1. ФИЛЬТРЫ СВЕРХУ ---
-        # Создаем контейнер для фильтров
+    
+    # 1. Загружаем данные из Google Sheets (лист "товары")
+    all_values = items_sheet.get_all_values()
+    
+    if len(all_values) > 1:
+        # Первая строка — заголовки, остальное — товары
+        data = all_values[1:]
+        
+        # --- БЛОК ФИЛЬТРОВ (СВЕРХУ) ---
         with st.container():
-            st.subheader("🔍 Поиск")
-            filt_col1, filt_col2 = st.columns(2)
+            f1, f2 = st.columns(2)
+            sel_cat = f1.selectbox("Категория", ["Все", "Мужские", "Женские", "Детские"])
+            sel_season = f2.selectbox("Сезон", ["Все", "Лето", "Зима", "Демисезон"])
+        
+        st.divider()
 
-            with filt_col1:
-                categories = ["Все", "Мужские", "Женские", "Детские"]
-                sel_cat = st.selectbox("Категория", categories)
+        # --- ВЫВОД ТОВАРОВ ---
+        # Используем enumerate, чтобы получить уникальный индекс i для ключей
+        for i, row in enumerate(data):
+            # row[0]-Категория, row[1]-Сезон, row[2]-Название, 
+            # row[3]-Кол-во в пачке, row[4]-Теги, row[5]-Фото
+            
+            # Фильтрация
+            if sel_cat != "Все" and row[0] != sel_cat: continue
+            if sel_season != "Все" and row[1] != sel_season: continue
 
-            with filt_col2:
-                seasons = ["Все", "Лето", "Зима", "Демисезон"]
-                sel_season = st.selectbox("Сезон", seasons)
-
-        st.divider()  # Линия-разделитель между фильтрами и товарами
-
-        # --- 2. ЛОГИКА ФИЛЬТРАЦИИ ---
-        filtered_df = df.copy()
-
-        if sel_cat != "Все":
-            filtered_df = filtered_df[filtered_df["Категория"] == sel_cat]
-
-        if sel_season != "Все":
-            filtered_df = filtered_df[filtered_df["Сезон"] == sel_season]
-
-        # --- 3. ВЫВОД ТОВАРОВ ---
-        if not filtered_df.empty:
-            for index, row in filtered_df.iterrows():
-                with st.container():
-                    # Пропорции колонок: Картинка (1) и Информация (2)
-                    c1, c2 = st.columns([1, 2])
-
-                    with c1:
-                        # use_container_width=True растягивает фото на всю ширину колонки
-                        if os.path.exists(str(row['фото'])):
-                            st.image(row['фото'], use_container_width=True)
+            with st.container():
+                c1, c2 = st.columns([1, 2])
+                
+                with c1:
+                    # Проверка на длину строки, чтобы не было ошибки "list index out of range"
+                    if len(row) > 5:
+                        img_path = row[5] # 6-я колонка (индекс 5)
+                        if os.path.exists(str(img_path)):
+                            st.image(img_path, use_container_width=True)
                         else:
                             st.write("🖼️ Нет фото")
+                    else:
+                        st.write("🖼️ Ошибка данных")
 
-                    with c2:
-                        st.subheader(row['Название'])
-                        # Красивые плашки с информацией
-                        st.write(f"🏷️ **{row['Категория']}** |  ❄️ **{row['Сезон']}**")
-                        st.caption(f"В пачке: {row['Количество в пачке']} шт. | #{row['Теги']}")
+                with c2:
+                    st.subheader(row[2]) # Название
+                    st.write(f"🏷️ **{row[0]}** | ❄️ **{row[1]}**")
+                    st.caption(f"В пачке: {row[3]} шт. | #{row[4]}")
 
-                        qty_key = f"qty_{index}"
-                        comm_key = f"comm_{index}"
+                    # Добавляем i к ключу, чтобы даже одинаковые названия не ломали сайт
+                    qty_key = f"qty_{i}_{row[2]}"
+                    comm_key = f"comm_{i}_{row[2]}"
+                    
+                    col_q, col_c = st.columns([1, 2])
+                    with col_q:
+                        st.number_input("Кол-во", min_value=1, value=1, key=qty_key)
+                    with col_c:
+                        st.text_input("Комментарий", placeholder="Цвет, размер...", key=comm_key)
 
-                        # Делаем ввод компактнее
-                        col_input1, col_input2 = st.columns([1, 2])
-                        with col_input1:
-                            st.number_input("Кол-во", min_value=1, value=1, key=qty_key)
-                        with col_input2:
-                            st.text_input("Коммент", placeholder="Размер/Цвет", key=comm_key)
-
-                        # Кнопка на всю ширину для удобства (особенно с телефона)
-                        if st.button("🛒 Заказать", key=f"btn_{index}", use_container_width=True):
-                            selected_qty = st.session_state[qty_key]
-                            selected_comm = st.session_state[comm_key]
-
-                            cart_sheet.append_row([
-                                str(st.session_state.user_phone),
-                                str(row['Название']),
-                                int(selected_qty),
-                                str(row['фото']),
-                                str(selected_comm)
-                            ])
-                            st.toast(f"✅ {row['Название']} добавлено!")
-                st.divider()
-        else:
-            st.info("📭 Товаров с такими параметрами пока нет.")
-
+                    if st.button("🛒 В корзину", key=f"btn_{i}_{row[2]}", use_container_width=True):
+                        # Запись в лист "корзины"
+                        cart_sheet.append_row([
+                            str(st.session_state.user_phone),
+                            str(row[2]),           # Название
+                            int(st.session_state[qty_key]), 
+                            str(row[5]) if len(row) > 5 else "", # Фото (с проверкой)
+                            str(st.session_state[comm_key])
+                        ])
+                        st.toast(f"✅ {row[2]} добавлен!")
+            st.divider()
     else:
-        st.warning("База товаров еще не создана. Зайдите в Админку.")
+        st.info("В каталоге пока нет товаров. Добавьте их через панель администратора.")
 # --- 8. СТРАНИЦА: КОРЗИНА ---
 elif st.session_state.page == "📦 Заказ":
     st.title("🛒 Ваш заказ")
@@ -295,6 +284,7 @@ elif st.session_state.page == "📦 Заказ":
     else:
 
         st.info("Корзина пуста.")
+
 
 
 
