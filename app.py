@@ -167,58 +167,59 @@ elif st.session_state.page == "Покупатель (Каталог)":
             sel_cat = f1.selectbox("Категория", ["Все", "Мужские", "Женские", "Детские"])
             sel_season = f2.selectbox("Сезон", ["Все", "Лето", "Зима", "Демисезон"])
         
-        st.divider()
-
+        st.divider()      
         # --- ВЫВОД ТОВАРОВ ---
-        # Используем enumerate, чтобы получить уникальный индекс i для ключей
         for i, row in enumerate(data):
-            # row[0]-Категория, row[1]-Сезон, row[2]-Название, 
-            # row[3]-Кол-во в пачке, row[4]-Теги, row[5]-Фото
+            # --- НАСТРОЙКА КОЛОНОК (Поменяйте цифры, если перепутали столбцы) ---
+            # Смотрите в Google Таблицу: A=0, B=1, C=2, D=3, E=4, F=5
             
+            p_cat = row[0]      # Где лежит Категория
+            p_season = row[1]   # Где лежит Сезон
+            p_name = row[2]     # Где лежит Название
+            p_qty = row[3]      # Где лежит Количество
+            p_tags = row[4]     # Где лежат Теги
+            p_photo = row[5] if len(row) > 5 else "" # Где лежит Фото
+            
+            # ------------------------------------------------------------------
+
             # Фильтрация
-            if sel_cat != "Все" and row[2] != sel_cat: continue
-            if sel_season != "Все" and row[1] != sel_season: continue
+            if sel_cat != "Все" and p_cat != sel_cat: continue
+            if sel_season != "Все" and p_season != sel_season: continue
 
             with st.container():
                 c1, c2 = st.columns([1, 2])
                 
                 with c1:
-                    # Проверка на длину строки, чтобы не было ошибки "list index out of range"
-                    if len(row) > 5:
-                        img_path = row[5] # 6-я колонка (индекс 5)
-                        if os.path.exists(str(img_path)):
-                            st.image(img_path, use_container_width=True)
-                        else:
-                            st.write("🖼️ Нет фото")
+                    if os.path.exists(str(p_photo)):
+                        st.image(p_photo, use_container_width=True)
                     else:
-                        st.write("🖼️ Ошибка данных")
+                        st.write("🖼️ Нет фото")
 
                 with c2:
-                    st.subheader(row[2]) # Название
-                    st.write(f"🏷️ **{row[0]}** | ❄️ **{row[1]}**")
-                    st.caption(f"В пачке: {row[3]} шт. | #{row[4]}")
+                    st.subheader(p_name)  # <-- Теперь тут точно будет название
+                    st.write(f"🏷️ **{p_cat}** | ❄️ **{p_season}**")
+                    st.caption(f"В пачке: {p_qty} шт. | #{p_tags}")
 
-                    # Добавляем i к ключу, чтобы даже одинаковые названия не ломали сайт
-                    qty_key = f"qty_{i}_{row[2]}"
-                    comm_key = f"comm_{i}_{row[2]}"
+                    qty_key = f"qty_{i}_{p_name}"
+                    comm_key = f"comm_{i}_{p_name}"
                     
                     col_q, col_c = st.columns([1, 2])
                     with col_q:
                         st.number_input("Кол-во", min_value=1, value=1, key=qty_key)
                     with col_c:
-                        st.text_input("Комментарий", placeholder="Цвет, размер...", key=comm_key)
+                        st.text_input("Комментарий", placeholder="Цвет...", key=comm_key)
 
-                    if st.button("🛒 В корзину", key=f"btn_{i}_{row[2]}", use_container_width=True):
-                        # Запись в лист "корзины"
+                    if st.button("🛒 В корзину", key=f"btn_{i}_{p_name}", use_container_width=True):
                         cart_sheet.append_row([
                             str(st.session_state.user_phone),
-                            str(row[0]),           # Название
-                            int(st.session_state[qty_key]), 
-                            str(row[5]) if len(row) > 5 else "", # Фото (с проверкой)
+                            str(p_name),
+                            int(st.session_state[qty_key]),
+                            str(p_photo),
                             str(st.session_state[comm_key])
                         ])
-                        st.toast(f"✅ {row[2]} добавлен!")
+                        st.toast(f"✅ {p_name} добавлен!")
             st.divider()
+
     else:
         st.info("В каталоге пока нет товаров. Добавьте их через панель администратора.")
 # --- 8. СТРАНИЦА: КОРЗИНА ---
@@ -284,6 +285,7 @@ elif st.session_state.page == "📦 Заказ":
     else:
 
         st.info("Корзина пуста.")
+
 
 
 
