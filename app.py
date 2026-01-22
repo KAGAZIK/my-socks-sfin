@@ -176,7 +176,7 @@ elif st.session_state.page == "Покупатель (Каталог)":
             # row[3]-Кол-во в пачке, row[4]-Теги, row[5]-Фото
             
             # Фильтрация
-            if sel_cat != "Все" and row[0] != sel_cat: continue
+            if sel_cat != "Все" and row[2] != sel_cat: continue
             if sel_season != "Все" and row[1] != sel_season: continue
 
             with st.container():
@@ -212,7 +212,7 @@ elif st.session_state.page == "Покупатель (Каталог)":
                         # Запись в лист "корзины"
                         cart_sheet.append_row([
                             str(st.session_state.user_phone),
-                            str(row[2]),           # Название
+                            str(row[0]),           # Название
                             int(st.session_state[qty_key]), 
                             str(row[5]) if len(row) > 5 else "", # Фото (с проверкой)
                             str(st.session_state[comm_key])
@@ -284,6 +284,7 @@ elif st.session_state.page == "📦 Заказ":
     else:
 
         st.info("Корзина пуста.")
+
 
 
 
