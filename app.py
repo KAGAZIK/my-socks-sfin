@@ -14,42 +14,45 @@ st.set_page_config(page_title="Магазин носков", layout="wide")
 # 1. Вставьте сюда ID папки, который вы скопировали
 def upload_to_drive(file_obj):
     try:
-        folder_id = st.secrets["GOOGLE_DRIVE_FOLDER_ID"]
+        # 1. Получаем ID папки из секретов
+        folder_id = st.secrets["GOOGLE_DRIVE_FOLDER_ID"].strip()
+        
+        # 2. Создаем сервис
         service = build('drive', 'v3', credentials=creds)
         
-        # 1. Четко прописываем метаданные
+        # 3. Метаданные (ВАЖНО: parents должен быть списком)
         file_metadata = {
             'name': file_obj.name,
             'parents': [folder_id]
         }
         
-        # 2. Подготавливаем файл (используем MediaIoBaseUpload)
-        media = MediaIoBaseUpload(
-            file_obj, 
-            mimetype=file_obj.type, 
-            resumable=True
-        )
+        # 4. Чтение контента файла
+        # Сбрасываем указатель файла в начало, если он был прочитан ранее
+        file_obj.seek(0)
+        media = MediaIoBaseUpload(file_obj, mimetype=file_obj.type, resumable=True)
         
-        # 3. Сама загрузка с поддержкой всех типов дисков
+        # 5. Выполняем загрузку
+        # supportsAllDrives=True критически важен для работы с чужими папками
         file = service.files().create(
             body=file_metadata,
             media_body=media,
             fields='id',
-            supportsAllDrives=True # Важно, если папка в общей среде
+            supportsAllDrives=True 
         ).execute()
         
         file_id = file.get('id')
         
-        # 4. Делаем файл доступным для просмотра
+        # 6. Делаем файл доступным всем (чтобы картинка отображалась на сайте)
         service.permissions().create(
             fileId=file_id,
-            body={'role': 'reader', 'type': 'anyone'}
+            body={'role': 'reader', 'type': 'anyone'},
+            supportsAllDrives=True
         ).execute()
         
-        # Возвращаем ссылку для отображения в Streamlit
         return f"https://drive.google.com/uc?export=view&id={file_id}"
         
     except Exception as e:
+        # Выводим подробную ошибку для отладки
         st.error(f"Ошибка загрузки на Диск: {e}")
         return None
 DB_FILE = 'socks.xlsx'
@@ -343,6 +346,7 @@ elif st.session_state.page == "📦 Заказ":
     else:
 
         st.info("Корзина пуста.")
+
 
 
 
