@@ -41,18 +41,22 @@ except Exception as e:
     st.sidebar.error(f"Ошибка проверки: {e}")
 def upload_to_drive(file_obj):
     try:
+        # 1. Берем чистый ID из секретов
         folder_id = st.secrets["GOOGLE_DRIVE_FOLDER_ID"].strip()
+        
+        # 2. Инициализируем сервис
         service = build('drive', 'v3', credentials=creds)
         
+        # 3. Подготовка файла (ВАЖНО: resumable=False помогает с квотой)
         file_obj.seek(0)
+        media = MediaIoBaseUpload(file_obj, mimetype=file_obj.type, resumable=False)
+        
         file_metadata = {
             'name': file_obj.name,
             'parents': [folder_id]
         }
         
-        media = MediaIoBaseUpload(file_obj, mimetype=file_obj.type, resumable=False)
-        
-        # Загружаем файл
+        # 4. Загрузка с флагом поддержки всех дисков
         file = service.files().create(
             body=file_metadata,
             media_body=media,
@@ -61,17 +65,17 @@ def upload_to_drive(file_obj):
         ).execute()
         
         file_id = file.get('id')
-
-        # ХИТРОСТЬ: Делаем файл доступным всем по ссылке. 
-        # На личных дисках это часто "размораживает" квоту.
+        
+        # 5. Делаем файл публичным (чтобы ссылка работала)
         service.permissions().create(
             fileId=file_id,
             body={'role': 'reader', 'type': 'anyone'}
         ).execute()
         
         return f"https://drive.google.com/uc?export=view&id={file_id}"
+        
     except Exception as e:
-        st.error(f"Ошибка: {e}")
+        st.error(f"Ошибка загрузки на Диск: {e}")
         return None
 DB_FILE = 'socks.xlsx'
 IMG_DIR = 'images'
@@ -354,6 +358,7 @@ elif st.session_state.page == "📦 Заказ":
     else:
 
         st.info("Корзина пуста.")
+
 
 
 
