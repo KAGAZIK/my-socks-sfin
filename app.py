@@ -14,32 +14,41 @@ st.set_page_config(page_title="Магазин носков", layout="wide")
 # 1. Вставьте сюда ID папки, который вы скопировали
 def upload_to_drive(file_obj):
     try:
-        folder_id = st.secrets["GOOGLE_DRIVE_FOLDER_ID"] # Берем из секретов
+        folder_id = st.secrets["GOOGLE_DRIVE_FOLDER_ID"]
         service = build('drive', 'v3', credentials=creds)
         
+        # 1. Четко прописываем метаданные
         file_metadata = {
             'name': file_obj.name,
-            'parents': [folder_id]  # ВОТ ЭТА СТРОЧКА — ГЛАВНАЯ
+            'parents': [folder_id]
         }
         
-        media = MediaIoBaseUpload(file_obj, mimetype=file_obj.type)
+        # 2. Подготавливаем файл (используем MediaIoBaseUpload)
+        media = MediaIoBaseUpload(
+            file_obj, 
+            mimetype=file_obj.type, 
+            resumable=True
+        )
         
-        # Загрузка
+        # 3. Сама загрузка с поддержкой всех типов дисков
         file = service.files().create(
-            body=file_metadata, # Передаем метаданные с папкой!
+            body=file_metadata,
             media_body=media,
-            fields='id'
+            fields='id',
+            supportsAllDrives=True # Важно, если папка в общей среде
         ).execute()
         
         file_id = file.get('id')
         
-        # Делаем файл доступным по ссылке
+        # 4. Делаем файл доступным для просмотра
         service.permissions().create(
             fileId=file_id,
             body={'role': 'reader', 'type': 'anyone'}
         ).execute()
         
+        # Возвращаем ссылку для отображения в Streamlit
         return f"https://drive.google.com/uc?export=view&id={file_id}"
+        
     except Exception as e:
         st.error(f"Ошибка загрузки на Диск: {e}")
         return None
@@ -334,6 +343,7 @@ elif st.session_state.page == "📦 Заказ":
     else:
 
         st.info("Корзина пуста.")
+
 
 
 
