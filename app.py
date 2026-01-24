@@ -45,17 +45,14 @@ def upload_to_drive(file_obj):
         service = build('drive', 'v3', credentials=creds)
         
         file_obj.seek(0)
-        
-        # Метаданные с четким указанием папки
         file_metadata = {
             'name': file_obj.name,
             'parents': [folder_id]
         }
         
-        # Используем простую загрузку (не resumable), так как файлы маленькие
-        # Это часто помогает обойти ошибки квоты сервисных аккаунтов
-        media = MediaIoBaseUpload(file_obj, mimetype=file_obj.type)
+        media = MediaIoBaseUpload(file_obj, mimetype=file_obj.type, resumable=False)
         
+        # Загружаем файл
         file = service.files().create(
             body=file_metadata,
             media_body=media,
@@ -64,18 +61,17 @@ def upload_to_drive(file_obj):
         ).execute()
         
         file_id = file.get('id')
-        
-        # Даем права на чтение
+
+        # ХИТРОСТЬ: Делаем файл доступным всем по ссылке. 
+        # На личных дисках это часто "размораживает" квоту.
         service.permissions().create(
             fileId=file_id,
-            body={'role': 'reader', 'type': 'anyone'},
-            supportsAllDrives=True
+            body={'role': 'reader', 'type': 'anyone'}
         ).execute()
         
         return f"https://drive.google.com/uc?export=view&id={file_id}"
-        
     except Exception as e:
-        st.error(f"Ошибка загрузки на Диск: {e}")
+        st.error(f"Ошибка: {e}")
         return None
 DB_FILE = 'socks.xlsx'
 IMG_DIR = 'images'
@@ -358,6 +354,7 @@ elif st.session_state.page == "📦 Заказ":
     else:
 
         st.info("Корзина пуста.")
+
 
 
 
