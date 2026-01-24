@@ -14,10 +14,20 @@ st.set_page_config(page_title="Магазин носков", layout="wide")
 # 1. Вставьте сюда ID папки, который вы скопировали
 try:
     test_service = build('drive', 'v3', credentials=creds)
-    folder_info = test_service.files().get(fileId=st.secrets["GOOGLE_DRIVE_FOLDER_ID"], fields='name').execute()
-    st.sidebar.success(f"✅ Бот видит папку: {folder_info['name']}")
+    results = test_service.files().list(
+        q="mimeType='application/vnd.google-apps.folder'", 
+        fields="files(id, name)"
+    ).execute()
+    folders = results.get('files', [])
+    
+    if folders:
+        st.sidebar.write("Папки, которые видит бот:")
+        for f in folders:
+            st.sidebar.write(f"- {f['name']} (ID: {f['id']})")
+    else:
+        st.sidebar.warning("Бот вообще не видит ни одной папки!")
 except Exception as e:
-    st.sidebar.error(f"❌ Бот НЕ видит папку! Проверьте права доступа для email.")
+    st.sidebar.error(f"Ошибка проверки: {e}")
 def upload_to_drive(file_obj):
     try:
         # 1. Получаем ID папки из секретов
@@ -352,6 +362,7 @@ elif st.session_state.page == "📦 Заказ":
     else:
 
         st.info("Корзина пуста.")
+
 
 
 
