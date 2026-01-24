@@ -11,16 +11,23 @@ from googleapiclient.http import MediaIoBaseUpload
 # --- 1. НАСТРОЙКИ ---
 st.set_page_config(page_title="Магазин носков", layout="wide")
 # --- ФУНКЦИЯ ЗАГРУЗКИ НА GOOGLE DRIVE ---
+# 1. Вставьте сюда ID папки, который вы скопировали
+FOLDER_ID = "https://drive.google.com/drive/u/0/folders/1OMZ7N2ftS9bhppVSZ_ipT8enuyegvspY" 
+
 def upload_to_drive(file_obj):
     try:
-        # Создаем сервис для работы с Диском, используя те же creds
         service = build('drive', 'v3', credentials=creds)
         
-        # Параметры файла
-        file_metadata = {'name': file_obj.name}
+        # --- ИЗМЕНЕНИЕ ТУТ: Добавляем родителей (parents) ---
+        file_metadata = {
+            'name': file_obj.name,
+            'parents': [FOLDER_ID]  # Указываем папку на вашем диске
+        }
+        # ----------------------------------------------------
+        
         media = MediaIoBaseUpload(file_obj, mimetype=file_obj.type)
         
-        # 1. Загружаем файл
+        # Загружаем
         file = service.files().create(
             body=file_metadata,
             media_body=media,
@@ -28,13 +35,12 @@ def upload_to_drive(file_obj):
         ).execute()
         file_id = file.get('id')
         
-        # 2. Делаем файл доступным для всех (чтобы сайт мог его показать)
+        # Делаем файл публичным для просмотра на сайте
         service.permissions().create(
             fileId=file_id,
             body={'role': 'reader', 'type': 'anyone'}
         ).execute()
         
-        # 3. Возвращаем прямую ссылку на картинку
         return f"https://drive.google.com/uc?export=view&id={file_id}"
     except Exception as e:
         st.error(f"Ошибка загрузки на Диск: {e}")
@@ -330,6 +336,7 @@ elif st.session_state.page == "📦 Заказ":
     else:
 
         st.info("Корзина пуста.")
+
 
 
 
