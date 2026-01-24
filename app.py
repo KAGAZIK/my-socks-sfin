@@ -41,22 +41,20 @@ except Exception as e:
     st.sidebar.error(f"Ошибка проверки: {e}")
 def upload_to_drive(file_obj):
     try:
-        # 1. Берем чистый ID из секретов
         folder_id = st.secrets["GOOGLE_DRIVE_FOLDER_ID"].strip()
-        
-        # 2. Инициализируем сервис
         service = build('drive', 'v3', credentials=creds)
         
-        # 3. Подготовка файла (ВАЖНО: resumable=False помогает с квотой)
         file_obj.seek(0)
-        media = MediaIoBaseUpload(file_obj, mimetype=file_obj.type, resumable=False)
         
+        # 1. Метаданные
         file_metadata = {
             'name': file_obj.name,
             'parents': [folder_id]
         }
         
-        # 4. Загрузка с флагом поддержки всех дисков
+        # 2. Загрузка (обязательно resumable=False для обхода квоты бота)
+        media = MediaIoBaseUpload(file_obj, mimetype=file_obj.type, resumable=False)
+        
         file = service.files().create(
             body=file_metadata,
             media_body=media,
@@ -66,7 +64,8 @@ def upload_to_drive(file_obj):
         
         file_id = file.get('id')
         
-        # 5. Делаем файл публичным (чтобы ссылка работала)
+        # 3. ДЕЛАЕМ ФАЙЛ ПУБЛИЧНЫМ
+        # Это критично: на личных аккаунтах это часто сбрасывает ошибку квоты
         service.permissions().create(
             fileId=file_id,
             body={'role': 'reader', 'type': 'anyone'}
@@ -75,7 +74,8 @@ def upload_to_drive(file_obj):
         return f"https://drive.google.com/uc?export=view&id={file_id}"
         
     except Exception as e:
-        st.error(f"Ошибка загрузки на Диск: {e}")
+        # Если квота все равно ругается, выведем более детальный текст
+        st.error(f"Ошибка Google Drive: {e}")
         return None
 DB_FILE = 'socks.xlsx'
 IMG_DIR = 'images'
@@ -358,6 +358,7 @@ elif st.session_state.page == "📦 Заказ":
     else:
 
         st.info("Корзина пуста.")
+
 
 
 
