@@ -13,27 +13,26 @@ st.set_page_config(page_title="Магазин носков", layout="wide")
 # 1. Вставьте сюда ID папки, который вы скопировали
 def upload_to_drive(file_obj):
     try:
-        # Берем ID папки прямо из секретов
-        folder_id = st.secrets["GOOGLE_DRIVE_FOLDER_ID"]
-        
+        folder_id = st.secrets["GOOGLE_DRIVE_FOLDER_ID"] # Берем из секретов
         service = build('drive', 'v3', credentials=creds)
         
         file_metadata = {
             'name': file_obj.name,
-            'parents': [folder_id] 
+            'parents': [folder_id]  # ВОТ ЭТА СТРОЧКА — ГЛАВНАЯ
         }
         
         media = MediaIoBaseUpload(file_obj, mimetype=file_obj.type)
         
-        # Загрузка...
+        # Загрузка
         file = service.files().create(
-            body=file_metadata,
+            body=file_metadata, # Передаем метаданные с папкой!
             media_body=media,
             fields='id'
         ).execute()
+        
         file_id = file.get('id')
         
-        # Права доступа...
+        # Делаем файл доступным по ссылке
         service.permissions().create(
             fileId=file_id,
             body={'role': 'reader', 'type': 'anyone'}
@@ -334,6 +333,7 @@ elif st.session_state.page == "📦 Заказ":
     else:
 
         st.info("Корзина пуста.")
+
 
 
 
