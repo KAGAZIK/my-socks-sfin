@@ -1,13 +1,10 @@
 import streamlit as st
 import gspread
 from google.oauth2.service_account import Credentials
-import pandas as pd
 import os
 import base64
 import requests  # Обязательно нужно для Telegram
 from auth import show_login_page
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseUpload
 
 # --- 1. НАСТРОЙКИ ---
 st.set_page_config(page_title="Магазин носков", layout="wide")
@@ -49,10 +46,7 @@ def upload_to_drive(file_obj):
         st.error(f"Ошибка при загрузке: {e}")
         return None
 
-DB_FILE = 'socks.xlsx'
-IMG_DIR = 'images'
-if not os.path.exists(IMG_DIR):
-    os.makedirs(IMG_DIR)
+
 
 # --- 3. СЕССИЯ И АВТОРИЗАЦИЯ ---
 if 'user_phone' not in st.session_state:
@@ -80,15 +74,6 @@ def send_telegram_message(text):
     except:
         return False
 
-
-def save_to_excel(data_dict):
-    if os.path.exists(DB_FILE):
-        df = pd.read_excel(DB_FILE)
-    else:
-        df = pd.DataFrame()
-    new_row = pd.DataFrame([data_dict])
-    df = pd.concat([df, new_row], ignore_index=True)
-    df.to_excel(DB_FILE, index=False)
 
 
 # --- 5. МЕНЮ (SIDEBAR) ---
@@ -172,11 +157,9 @@ if st.session_state.page == "Продавец (Добавить)":
                 with c1:
                     img_path = str(row['фото'])
                     if img_path.startswith("http"):
-                        st.image(img_path, width=150) # В админке лучше поменьше
-                    elif os.path.exists(img_path):
                         st.image(img_path, width=150)
                     else:
-                        st.write("🖼️")
+                        st.write("🖼️ Нет фото")
                 
                 c2.write(f"**{row['Название']}**")
                 
@@ -330,6 +313,7 @@ elif st.session_state.page == "📦 Заказ":
     else:
 
         st.info("Корзина пуста.")
+
 
 
 
