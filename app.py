@@ -12,6 +12,12 @@ from googleapiclient.http import MediaIoBaseUpload
 st.set_page_config(page_title="Магазин носков", layout="wide")
 # --- ФУНКЦИЯ ЗАГРУЗКИ НА GOOGLE DRIVE ---
 # 1. Вставьте сюда ID папки, который вы скопировали
+try:
+    test_service = build('drive', 'v3', credentials=creds)
+    folder_info = test_service.files().get(fileId=st.secrets["GOOGLE_DRIVE_FOLDER_ID"], fields='name').execute()
+    st.sidebar.success(f"✅ Бот видит папку: {folder_info['name']}")
+except Exception as e:
+    st.sidebar.error(f"❌ Бот НЕ видит папку! Проверьте права доступа для email.")
 def upload_to_drive(file_obj):
     try:
         # 1. Получаем ID папки из секретов
@@ -346,6 +352,7 @@ elif st.session_state.page == "📦 Заказ":
     else:
 
         st.info("Корзина пуста.")
+
 
 
 
