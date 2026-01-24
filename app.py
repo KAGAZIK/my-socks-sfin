@@ -5,10 +5,40 @@ import pandas as pd
 import os
 import requests  # Обязательно нужно для Telegram
 from auth import show_login_page
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseUpload
 
 # --- 1. НАСТРОЙКИ ---
 st.set_page_config(page_title="Магазин носков", layout="wide")
-
+# --- ФУНКЦИЯ ЗАГРУЗКИ НА GOOGLE DRIVE ---
+def upload_to_drive(file_obj):
+    try:
+        # Создаем сервис для работы с Диском, используя те же creds
+        service = build('drive', 'v3', credentials=creds)
+        
+        # Параметры файла
+        file_metadata = {'name': file_obj.name}
+        media = MediaIoBaseUpload(file_obj, mimetype=file_obj.type)
+        
+        # 1. Загружаем файл
+        file = service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields='id'
+        ).execute()
+        file_id = file.get('id')
+        
+        # 2. Делаем файл доступным для всех (чтобы сайт мог его показать)
+        service.permissions().create(
+            fileId=file_id,
+            body={'role': 'reader', 'type': 'anyone'}
+        ).execute()
+        
+        # 3. Возвращаем прямую ссылку на картинку
+        return f"https://drive.google.com/uc?export=view&id={file_id}"
+    except Exception as e:
+        st.error(f"Ошибка загрузки на Диск: {e}")
+        return None
 DB_FILE = 'socks.xlsx'
 IMG_DIR = 'images'
 if not os.path.exists(IMG_DIR):
@@ -92,36 +122,41 @@ if st.session_state.page == "Продавец (Добавить)":
     # Форма добавления
         with st.expander("➕ Добавить новый товар", expanded=True):
             with st.form("add_form", clear_on_submit=True):
+                st.write("📸 **Загрузка фото**")
+                # Возвращаем удобную кнопку загрузки файла
+                uploaded_photo = st.file_uploader("Выберите фото (с телефона или ПК)", type=['jpg', 'jpeg', 'png'])
+                
+                st.write("📝 **Описание товара**")
                 name = st.text_input("Название")
                 c1, c2 = st.columns(2)
                 cat = c1.selectbox("Категория", ["Мужские", "Женские", "Детские"])
                 seas = c2.selectbox("Сезон", ["Лето", "Зима", "Демисезон"])
                 qty = st.selectbox("В пачке", ["6", "10", "12", "14", "16"])
-                tags = st.text_input("Описание")
-                photo = st.file_uploader("Фото", type=['jpg', 'png'])
+                tags = st.text_input("Хештеги")
 
-                if st.form_submit_button("Опубликовать"):
-                    if photo and name:
-                        # 1. Сохраняем фото локально (для отображения)
-                        p_path = os.path.join(IMG_DIR, photo.name)
-                        with open(p_path, "wb") as f:
-                            f.write(photo.getbuffer())
-
-                        # 2. ЗАПИСЫВАЕМ В GOOGLE ТАБЛИЦУ (вместо Excel)
-                        # Важно: порядок должен совпадать с заголовками в таблице
-                        items_sheet.append_row([
-                            name,   # Название
-                            cat,    # Категория
-                            seas,   # Сезон
-                            qty,    # Количество в пачке
-                            tags,   # Описание
-                            p_path  # Путь к фото
-                        ])
-                        
-                        st.success("Товар успешно сохранен в Google Таблицу!")
-                        st.rerun()
+                if st.form_submit_button("Опубликовать товар"):
+                    if uploaded_photo and name:
+                        with st.spinner("⏳ Загружаем фото на Google Диск..."):
+                            # --- МАГИЯ ЗДЕСЬ ---
+                            # Отправляем файл в облако и получаем ссылку
+                            public_url = upload_to_drive(uploaded_photo)
+                            
+                            if public_url:
+                                # Записываем ссылку в таблицу
+                                items_sheet.append_row([
+                                    str(cat), 
+                                    str(seas), 
+                                    str(name), 
+                                    str(qty), 
+                                    str(tags), 
+                                    str(public_url) # Ссылка на Google Drive
+                                ])
+                                st.success("✅ Товар успешно добавлен и фото сохранено в облаке!")
+                                st.rerun()
+                            else:
+                                st.error("Не удалось получить ссылку на фото.")
                     else:
-                        st.error("Нужно название и фото!")
+                        st.error("❌ Заполните название и прикрепите фото!")
 
         # Список для удаления
         st.divider()
@@ -136,8 +171,10 @@ if st.session_state.page == "Продавец (Добавить)":
                 
                 with c1:
                     img_path = str(row['фото'])
-                    if os.path.exists(img_path):
-                        st.image(img_path, width=350)
+                    if img_path.startswith("http"):
+                        st.image(img_path, width=150) # В админке лучше поменьше
+                    elif os.path.exists(img_path):
+                        st.image(img_path, width=150)
                     else:
                         st.write("🖼️")
                 
@@ -191,11 +228,17 @@ elif st.session_state.page == "Покупатель (Каталог)":
                 c1, c2 = st.columns([1, 2])
                 
                 with c1:
-                    if os.path.exists(str(p_photo)):
-                        st.image(p_photo, use_container_width=True)
+                    if p_photo:
+                        # Если это ссылка на Google Диск (начинается с http)
+                        if p_photo.startswith("http"):
+                            st.image(p_photo, use_container_width=True)
+                        # Если это старый файл (для совместимости)
+                        elif os.path.exists(str(p_photo)):
+                            st.image(p_photo, use_container_width=True)
+                        else:
+                            st.write("🖼️ Фото не найдено")
                     else:
                         st.write("🖼️")
-
                 with c2:
                     st.subheader(p_name)  # Теперь тут будет "Gg aa"
                     st.write(f"🏷️ **{p_cat}** | ❄️ **{p_season}**")
@@ -242,9 +285,11 @@ elif st.session_state.page == "📦 Заказ":
                     c1, c2, c3 = st.columns([1, 3, 1])
                     path = item.iloc[3]
 
-                    with c1:  # или c1, смотря как названа колонка
+                    with c1:
                         image_path = str(item.iloc[3])
-                        if os.path.exists(image_path):
+                        if image_path.startswith("http"):
+                            st.image(image_path, width=100)
+                        elif os.path.exists(image_path):
                             st.image(image_path, width=100)
                         else:
                             st.write("🖼️")
@@ -285,6 +330,7 @@ elif st.session_state.page == "📦 Заказ":
     else:
 
         st.info("Корзина пуста.")
+
 
 
 
