@@ -44,19 +44,18 @@ def upload_to_drive(file_obj):
         folder_id = st.secrets["GOOGLE_DRIVE_FOLDER_ID"].strip()
         service = build('drive', 'v3', credentials=creds)
         
-        # Сбрасываем указатель файла
         file_obj.seek(0)
         
-        # 1. Сначала создаем "пустой" файл сразу в нужной папке
+        # Метаданные с четким указанием папки
         file_metadata = {
             'name': file_obj.name,
             'parents': [folder_id]
         }
         
-        media = MediaIoBaseUpload(file_obj, mimetype=file_obj.type, resumable=True)
+        # Используем простую загрузку (не resumable), так как файлы маленькие
+        # Это часто помогает обойти ошибки квоты сервисных аккаунтов
+        media = MediaIoBaseUpload(file_obj, mimetype=file_obj.type)
         
-        # 2. Загружаем данные. 
-        # Добавляем параметр ignoreDefaultVisibility, чтобы не было конфликтов прав
         file = service.files().create(
             body=file_metadata,
             media_body=media,
@@ -66,7 +65,7 @@ def upload_to_drive(file_obj):
         
         file_id = file.get('id')
         
-        # 3. Устанавливаем права доступа
+        # Даем права на чтение
         service.permissions().create(
             fileId=file_id,
             body={'role': 'reader', 'type': 'anyone'},
@@ -359,6 +358,7 @@ elif st.session_state.page == "📦 Заказ":
     else:
 
         st.info("Корзина пуста.")
+
 
 
 
