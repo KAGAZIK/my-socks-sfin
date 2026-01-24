@@ -132,7 +132,7 @@ if st.session_state.page == "Продавец (Добавить)":
                 cat = c1.selectbox("Категория", ["Мужские", "Женские", "Детские"])
                 seas = c2.selectbox("Сезон", ["Лето", "Зима", "Демисезон"])
                 qty = st.selectbox("В пачке", ["6", "10", "12", "14", "16"])
-                tags = st.text_input("Хештеги")
+                tags = st.text_input("Описание")
 
                 if st.form_submit_button("Опубликовать товар"):
                     if uploaded_photo and name:
@@ -144,9 +144,10 @@ if st.session_state.page == "Продавец (Добавить)":
                             if public_url:
                                 # Записываем ссылку в таблицу
                                 items_sheet.append_row([
+                                    str(name), 
                                     str(cat), 
                                     str(seas), 
-                                    str(name), 
+
                                     str(qty), 
                                     str(tags), 
                                     str(public_url) # Ссылка на Google Drive
@@ -330,6 +331,7 @@ elif st.session_state.page == "📦 Заказ":
     else:
 
         st.info("Корзина пуста.")
+
 
 
 
