@@ -53,7 +53,7 @@ scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis
 creds = Credentials.from_service_account_info(st.secrets["gspread_credentials"], scopes=scope)
 client = gspread.authorize(creds)
 sheet = client.open("socks_db")
-st.write("Email сервисного аккаунта:", creds.service_account_email)
+
 items_sheet = sheet.worksheet("товары")
 users_sheet = sheet.worksheet("аккаунты")
 cart_sheet = sheet.worksheet("корзины")
@@ -334,6 +334,7 @@ elif st.session_state.page == "📦 Заказ":
     else:
 
         st.info("Корзина пуста.")
+
 
 
 
