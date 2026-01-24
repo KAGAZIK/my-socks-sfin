@@ -3,6 +3,7 @@ import gspread
 from google.oauth2.service_account import Credentials
 import pandas as pd
 import os
+import base64
 import requests  # Обязательно нужно для Telegram
 from auth import show_login_page
 from googleapiclient.discovery import build
@@ -21,64 +22,33 @@ items_sheet = sheet.worksheet("товары")
 users_sheet = sheet.worksheet("аккаунты")
 cart_sheet = sheet.worksheet("корзины")
 
-# --- ФУНКЦИЯ ЗАГРУЗКИ НА GOOGLE DRIVE ---
-# 1. Вставьте сюда ID папки, который вы скопировали
-try:
-    test_service = build('drive', 'v3', credentials=creds)
-    results = test_service.files().list(
-        q="mimeType='application/vnd.google-apps.folder'", 
-        fields="files(id, name)"
-    ).execute()
-    folders = results.get('files', [])
-    
-    if folders:
-        st.sidebar.write("Папки, которые видит бот:")
-        for f in folders:
-            st.sidebar.write(f"- {f['name']} (ID: {f['id']})")
-    else:
-        st.sidebar.warning("Бот вообще не видит ни одной папки!")
-except Exception as e:
-    st.sidebar.error(f"Ошибка проверки: {e}")
 def upload_to_drive(file_obj):
     try:
-        # Берем ID НОВОЙ папки
-        folder_id = st.secrets["GOOGLE_DRIVE_FOLDER_ID"].strip()
-        service = build('drive', 'v3', credentials=creds)
+        api_key = st.secrets["IMGBB_API_KEY"]
+        url = "https://api.imgbb.com/1/upload"
         
-        file_obj.seek(0)
+        # Читаем файл и кодируем в base64
+        file_content = file_obj.read()
+        base64_image = base64.b64encode(file_content)
         
-        # ЭТАП 1: Создаем только метаданные (без самого файла)
-        file_metadata = {
-            'name': file_obj.name,
-            'parents': [folder_id]
+        payload = {
+            "key": api_key,
+            "image": base64_image,
         }
         
-        # ЭТАП 2: Загружаем контент отдельно
-        media = MediaIoBaseUpload(file_obj, mimetype=file_obj.type, resumable=True)
+        response = requests.post(url, payload)
+        res_data = response.json()
         
-        # Используем метод, который принудительно делегирует квоту владельцу папки
-        file = service.files().create(
-            body=file_metadata,
-            media_body=media,
-            fields='id',
-            supportsAllDrives=True,
-            # Этот флаг критичен для некоторых типов аккаунтов
-            ignoreDefaultVisibility=True 
-        ).execute()
-        
-        file_id = file.get('id')
-        
-        # ЭТАП 3: Публичный доступ (чтобы картинка была видна в приложении)
-        service.permissions().create(
-            fileId=file_id,
-            body={'role': 'reader', 'type': 'anyone'}
-        ).execute()
-        
-        return f"https://drive.google.com/uc?export=view&id={file_id}"
-        
+        if res_data["status"] == 200:
+            # Возвращаем прямую ссылку на картинку
+            return res_data["data"]["url"]
+        else:
+            st.error(f"Ошибка ImgBB: {res_data['error']['message']}")
+            return None
     except Exception as e:
-        st.error(f"Критическая ошибка квоты Google: {e}")
+        st.error(f"Ошибка при загрузке: {e}")
         return None
+
 DB_FILE = 'socks.xlsx'
 IMG_DIR = 'images'
 if not os.path.exists(IMG_DIR):
@@ -360,6 +330,7 @@ elif st.session_state.page == "📦 Заказ":
     else:
 
         st.info("Корзина пуста.")
+
 
 
 
