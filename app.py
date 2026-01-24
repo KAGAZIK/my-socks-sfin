@@ -10,6 +10,17 @@ from googleapiclient.http import MediaIoBaseUpload
 
 # --- 1. НАСТРОЙКИ ---
 st.set_page_config(page_title="Магазин носков", layout="wide")
+
+# --- 2. ПОДКЛЮЧЕНИЕ GOOGLE SHEETS ---
+scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+creds = Credentials.from_service_account_info(st.secrets["gspread_credentials"], scopes=scope)
+client = gspread.authorize(creds)
+sheet = client.open("socks_db")
+
+items_sheet = sheet.worksheet("товары")
+users_sheet = sheet.worksheet("аккаунты")
+cart_sheet = sheet.worksheet("корзины")
+
 # --- ФУНКЦИЯ ЗАГРУЗКИ НА GOOGLE DRIVE ---
 # 1. Вставьте сюда ID папки, который вы скопировали
 try:
@@ -75,16 +86,6 @@ DB_FILE = 'socks.xlsx'
 IMG_DIR = 'images'
 if not os.path.exists(IMG_DIR):
     os.makedirs(IMG_DIR)
-
-# --- 2. ПОДКЛЮЧЕНИЕ GOOGLE SHEETS ---
-scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-creds = Credentials.from_service_account_info(st.secrets["gspread_credentials"], scopes=scope)
-client = gspread.authorize(creds)
-sheet = client.open("socks_db")
-
-items_sheet = sheet.worksheet("товары")
-users_sheet = sheet.worksheet("аккаунты")
-cart_sheet = sheet.worksheet("корзины")
 
 # --- 3. СЕССИЯ И АВТОРИЗАЦИЯ ---
 if 'user_phone' not in st.session_state:
@@ -362,6 +363,7 @@ elif st.session_state.page == "📦 Заказ":
     else:
 
         st.info("Корзина пуста.")
+
 
 
 
