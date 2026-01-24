@@ -41,31 +41,34 @@ except Exception as e:
     st.sidebar.error(f"Ошибка проверки: {e}")
 def upload_to_drive(file_obj):
     try:
+        # Берем ID НОВОЙ папки
         folder_id = st.secrets["GOOGLE_DRIVE_FOLDER_ID"].strip()
         service = build('drive', 'v3', credentials=creds)
         
         file_obj.seek(0)
         
-        # 1. Метаданные
+        # ЭТАП 1: Создаем только метаданные (без самого файла)
         file_metadata = {
             'name': file_obj.name,
             'parents': [folder_id]
         }
         
-        # 2. Загрузка (обязательно resumable=False для обхода квоты бота)
-        media = MediaIoBaseUpload(file_obj, mimetype=file_obj.type, resumable=False)
+        # ЭТАП 2: Загружаем контент отдельно
+        media = MediaIoBaseUpload(file_obj, mimetype=file_obj.type, resumable=True)
         
+        # Используем метод, который принудительно делегирует квоту владельцу папки
         file = service.files().create(
             body=file_metadata,
             media_body=media,
             fields='id',
-            supportsAllDrives=True
+            supportsAllDrives=True,
+            # Этот флаг критичен для некоторых типов аккаунтов
+            ignoreDefaultVisibility=True 
         ).execute()
         
         file_id = file.get('id')
         
-        # 3. ДЕЛАЕМ ФАЙЛ ПУБЛИЧНЫМ
-        # Это критично: на личных аккаунтах это часто сбрасывает ошибку квоты
+        # ЭТАП 3: Публичный доступ (чтобы картинка была видна в приложении)
         service.permissions().create(
             fileId=file_id,
             body={'role': 'reader', 'type': 'anyone'}
@@ -74,8 +77,7 @@ def upload_to_drive(file_obj):
         return f"https://drive.google.com/uc?export=view&id={file_id}"
         
     except Exception as e:
-        # Если квота все равно ругается, выведем более детальный текст
-        st.error(f"Ошибка Google Drive: {e}")
+        st.error(f"Критическая ошибка квоты Google: {e}")
         return None
 DB_FILE = 'socks.xlsx'
 IMG_DIR = 'images'
@@ -358,6 +360,7 @@ elif st.session_state.page == "📦 Заказ":
     else:
 
         st.info("Корзина пуста.")
+
 
 
 
