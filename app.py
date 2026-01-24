@@ -44,42 +44,39 @@ def upload_to_drive(file_obj):
         # 1. Получаем ID папки из секретов
         folder_id = st.secrets["GOOGLE_DRIVE_FOLDER_ID"].strip()
         
-        # 2. Создаем сервис
         service = build('drive', 'v3', credentials=creds)
         
-        # 3. Метаданные (ВАЖНО: parents должен быть списком)
+        # 2. Метаданные (указываем папку-родителя)
         file_metadata = {
             'name': file_obj.name,
             'parents': [folder_id]
         }
         
-        # 4. Чтение контента файла
-        # Сбрасываем указатель файла в начало, если он был прочитан ранее
-        file_obj.seek(0)
+        # 3. Подготовка файла
+        file_obj.seek(0) # Сброс указателя
         media = MediaIoBaseUpload(file_obj, mimetype=file_obj.type, resumable=True)
         
-        # 5. Выполняем загрузку
-        # supportsAllDrives=True критически важен для работы с чужими папками
+        # 4. Загрузка
         file = service.files().create(
             body=file_metadata,
             media_body=media,
             fields='id',
-            supportsAllDrives=True 
+            supportsAllDrives=True  # Это позволяет использовать вашу квоту
         ).execute()
         
         file_id = file.get('id')
         
-        # 6. Делаем файл доступным всем (чтобы картинка отображалась на сайте)
+        # 5. Делаем файл доступным для показа на сайте
         service.permissions().create(
             fileId=file_id,
             body={'role': 'reader', 'type': 'anyone'},
             supportsAllDrives=True
         ).execute()
         
+        # Прямая ссылка для Streamlit
         return f"https://drive.google.com/uc?export=view&id={file_id}"
         
     except Exception as e:
-        # Выводим подробную ошибку для отладки
         st.error(f"Ошибка загрузки на Диск: {e}")
         return None
 DB_FILE = 'socks.xlsx'
@@ -363,6 +360,7 @@ elif st.session_state.page == "📦 Заказ":
     else:
 
         st.info("Корзина пуста.")
+
 
 
 
