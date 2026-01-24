@@ -12,22 +12,21 @@ from googleapiclient.http import MediaIoBaseUpload
 st.set_page_config(page_title="Магазин носков", layout="wide")
 # --- ФУНКЦИЯ ЗАГРУЗКИ НА GOOGLE DRIVE ---
 # 1. Вставьте сюда ID папки, который вы скопировали
-FOLDER_ID = "https://drive.google.com/drive/u/0/folders/1OMZ7N2ftS9bhppVSZ_ipT8enuyegvspY" 
-
 def upload_to_drive(file_obj):
     try:
+        # Берем ID папки прямо из секретов
+        folder_id = st.secrets["GOOGLE_DRIVE_FOLDER_ID"]
+        
         service = build('drive', 'v3', credentials=creds)
         
-        # --- ИЗМЕНЕНИЕ ТУТ: Добавляем родителей (parents) ---
         file_metadata = {
             'name': file_obj.name,
-            'parents': [FOLDER_ID]  # Указываем папку на вашем диске
+            'parents': [folder_id] 
         }
-        # ----------------------------------------------------
         
         media = MediaIoBaseUpload(file_obj, mimetype=file_obj.type)
         
-        # Загружаем
+        # Загрузка...
         file = service.files().create(
             body=file_metadata,
             media_body=media,
@@ -35,7 +34,7 @@ def upload_to_drive(file_obj):
         ).execute()
         file_id = file.get('id')
         
-        # Делаем файл публичным для просмотра на сайте
+        # Права доступа...
         service.permissions().create(
             fileId=file_id,
             body={'role': 'reader', 'type': 'anyone'}
@@ -336,6 +335,7 @@ elif st.session_state.page == "📦 Заказ":
     else:
 
         st.info("Корзина пуста.")
+
 
 
 
