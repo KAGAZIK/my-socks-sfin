@@ -41,39 +41,38 @@ except Exception as e:
     st.sidebar.error(f"Ошибка проверки: {e}")
 def upload_to_drive(file_obj):
     try:
-        # 1. Получаем ID папки из секретов
         folder_id = st.secrets["GOOGLE_DRIVE_FOLDER_ID"].strip()
-        
         service = build('drive', 'v3', credentials=creds)
         
-        # 2. Метаданные (указываем папку-родителя)
+        # Сбрасываем указатель файла
+        file_obj.seek(0)
+        
+        # 1. Сначала создаем "пустой" файл сразу в нужной папке
         file_metadata = {
             'name': file_obj.name,
             'parents': [folder_id]
         }
         
-        # 3. Подготовка файла
-        file_obj.seek(0) # Сброс указателя
         media = MediaIoBaseUpload(file_obj, mimetype=file_obj.type, resumable=True)
         
-        # 4. Загрузка
+        # 2. Загружаем данные. 
+        # Добавляем параметр ignoreDefaultVisibility, чтобы не было конфликтов прав
         file = service.files().create(
             body=file_metadata,
             media_body=media,
             fields='id',
-            supportsAllDrives=True  # Это позволяет использовать вашу квоту
+            supportsAllDrives=True
         ).execute()
         
         file_id = file.get('id')
         
-        # 5. Делаем файл доступным для показа на сайте
+        # 3. Устанавливаем права доступа
         service.permissions().create(
             fileId=file_id,
             body={'role': 'reader', 'type': 'anyone'},
             supportsAllDrives=True
         ).execute()
         
-        # Прямая ссылка для Streamlit
         return f"https://drive.google.com/uc?export=view&id={file_id}"
         
     except Exception as e:
@@ -360,6 +359,7 @@ elif st.session_state.page == "📦 Заказ":
     else:
 
         st.info("Корзина пуста.")
+
 
 
 
