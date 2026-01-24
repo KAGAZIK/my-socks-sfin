@@ -7,7 +7,7 @@ import requests  # Обязательно нужно для Telegram
 from auth import show_login_page
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
-
+st.write("Доступные ключи в секретах:", list(st.secrets.keys()))
 # --- 1. НАСТРОЙКИ ---
 st.set_page_config(page_title="Магазин носков", layout="wide")
 # --- ФУНКЦИЯ ЗАГРУЗКИ НА GOOGLE DRIVE ---
@@ -335,6 +335,7 @@ elif st.session_state.page == "📦 Заказ":
     else:
 
         st.info("Корзина пуста.")
+
 
 
 
