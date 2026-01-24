@@ -210,7 +210,7 @@ elif st.session_state.page == "Покупатель (Каталог)":
                     with col_c:
                         st.text_input("Комментарий", placeholder="Цвет...", key=comm_key)
 
-                    if st.button("🛒 В корзину", key=f"btn_{i}_{p_name}", use_container_width=True):
+                    if st.button("🛒 заказать", key=f"btn_{i}_{p_name}", use_container_width=True):
                         cart_sheet.append_row([
                             str(st.session_state.user_phone),
                             str(p_name),
@@ -285,6 +285,7 @@ elif st.session_state.page == "📦 Заказ":
     else:
 
         st.info("Корзина пуста.")
+
 
 
 
