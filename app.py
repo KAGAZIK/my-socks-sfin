@@ -147,7 +147,6 @@ if st.session_state.page == "Продавец (Добавить)":
                                     str(name), 
                                     str(cat), 
                                     str(seas), 
-
                                     str(qty), 
                                     str(tags), 
                                     str(public_url) # Ссылка на Google Drive
@@ -331,6 +330,7 @@ elif st.session_state.page == "📦 Заказ":
     else:
 
         st.info("Корзина пуста.")
+
 
 
 
